@@ -10,12 +10,22 @@ def outer_product_(u, v):
             m[i,j] = u[i]*v[j]
     return m
 
-def add_(u,v):
-    if u.shape != v.shape[0]:
-        ValueError('input vectors are not in the same size')
-    m = np.zeros(u.shape[0])
-    for i in range(u.shape[0]):
-        m[i] = u[i] + v[i]
+def add_(u, v):
+    m = [u[i] + v[i] for i in range(len(u))]
+    return m
+
+def outer_(u, v):
+    m = []
+    for i in range(len(u)):
+        temp = [u[i] * v[j] for j in range(len(v))]
+        m.append(temp)
+    return m
+
+def dot_(u, v):
+    m = [0]
+    for i in range(len(u)):
+        temp = outer_([u[i]], v)[i]
+        m = add_(m, temp)
     return m
 
 def ft_plot(ft_x, x, t, ft_type):
@@ -102,43 +112,47 @@ class FFT_pack():
         for m in range(self.total_m):
             _split = self.N // 2 ** (m + 1)
             num_each = self.N // _split
-            for _ in range(_split):
-                for __ in range(num_each // 2):
-                    temp = self.output[_ * num_each + __]
-                    temp2 = self.output[_ * num_each + __ + num_each // 2] * self._W[__ * 2 ** (self.total_m - m - 1)]
-                    self.output[_ * num_each + __] = (temp + temp2)
-                    self.output[_ * num_each + __ + num_each // 2] = (temp - temp2)
+            for k in range(_split):
+                for l in range(num_each // 2):
+                    # temp = self.output[k * num_each + l]
+                    temp = self.output[add_(dot_([k],[num_each]), [l])[0]]
+                    # temp2 = self.output[k * num_each + l + num_each // 2] * self._W[l * 2 ** (self.total_m - m - 1)]
+                    temp2 = dot_([self.output[add_(add_(dot_([k], [num_each]), [l]), [num_each // 2])[0]]], [self._W[dot_([l], [2**(self.total_m - m - 1)])[0]]])[0]
+                    # self.output[k * num_each + l] = (temp + temp2)
+                    self.output[add_(dot_([k],[num_each]), [l])[0]] = (add_([temp], [temp2])[0])
+                    # self.output[k * num_each + l + num_each // 2] = (temp - temp2)
+                    self.output[add_(add_(dot_([k], [num_each]), [l]), [num_each // 2])[0]] = (add_([temp], [-temp2])[0])
         if abs == True:
-            for _ in range(len(self.output)):
-                self.output[_] = self.output[_].__abs__()
+            for k in range(len(self.output)):
+                self.output[k] = self.output[k].__abs__()
         return self.output
 
     def FFT_normalized(self, _list, N) -> list:  # 计算给定序列的傅里叶变换结果，返回一个列表，结果经过归一化处理
         self.FFT(_list, N)
         max = 0   # 存储元素最大值
-        for _ in range(len(self.output)):
-            if max < self.output[_]:
-                max = self.output[_]
-        for _ in range(len(self.output)):
-            self.output[_] /= max
+        for k in range(len(self.output)):
+            if max < self.output[k]:
+                max = self.output[k]
+        for k in range(len(self.output)):
+            self.output[k] /= max
         return self.output
 
     def IFFT(self, _list, N) -> list:  # 计算给定序列的傅里叶逆变换结果，返回一个列表
         self.__init__(_list, N)
-        for _ in range(self.N):
-            self._W[_] = (cos(2 * pi / N) - sin(2 * pi / N) * 1j) ** (-_)
+        for k in range(self.N):
+            self._W[k] = (cos(2 * pi / N) - sin(2 * pi / N) * 1j) ** (-k)
         for m in range(self.total_m):
             _split = self.N // 2 ** (m + 1)
             num_each = self.N // _split
-            for _ in range(_split):
-                for __ in range(num_each // 2):
-                    temp = self.output[_ * num_each + __]
-                    temp2 = self.output[_ * num_each + __ + num_each // 2] * self._W[__ * 2 ** (self.total_m - m - 1)]
-                    self.output[_ * num_each + __] = (temp + temp2)
-                    self.output[_ * num_each + __ + num_each // 2] = (temp - temp2)
-        for _ in range(self.N):  # 根据IFFT计算公式对所有计算列表中的元素进行*1/N的操作
-            self.output[_] /= self.N
-            self.output[_] = self.output[_].__abs__()
+            for k in range(_split):
+                for l in range(num_each // 2):
+                    temp = self.output[k * num_each + l]
+                    temp2 = self.output[k * num_each + l + num_each // 2] * self._W[l * 2 ** (self.total_m - m - 1)]
+                    self.output[k * num_each + l] = (temp + temp2)
+                    self.output[k * num_each + l + num_each // 2] = (temp - temp2)
+        for k in range(self.N):  # 根据IFFT计算公式对所有计算列表中的元素进行*1/N的操作
+            self.output[k] /= self.N
+            self.output[k] = self.output[k].__abs__()
         return self.output
 
     def DFT(self, _list, N) -> list:  # 计算给定序列的离散傅里叶变换结果，算法复杂度较大，返回一个列表，结果没有经过归一化处理
