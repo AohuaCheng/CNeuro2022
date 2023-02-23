@@ -63,8 +63,15 @@ class SME_FFT():
     """
     SME_FFT
     adapted from https://www.jianshu.com/p/0bd1ddae41c4
+
+    Here, we use the original FFT based on the Butterfly Algorithm, which can be learned from or this blog https://blog.csdn.net/m0_38139533/article/details/100942095 for easier understanding.
+    
+    In our code, we follow the logic of the Butterfly Algrithm, but change the basic operation(add, multiply/cross product) based on SME framework, which only support outer product and add between vectors.
     """
-    def __init__(self, _list=[], N=0):  # _list 是传入的待计算的离散序列，N是序列采样点数，对于本方法，点数必须是2^n才可以得到正确结果
+    def __init__(self, _list=[], N=0):
+        '''
+        _list 是传入的待计算的离散序列，N是序列采样点数，对于本方法，点数必须是2^n才可以得到正确结果
+        '''
         self.list = _list  # 初始化数据
         self.N = N
         self.total_m = 0  # 序列的总层数
@@ -77,7 +84,10 @@ class SME_FFT():
         for _ in range(self.N):
             self._W.append((cos(2 * pi / N) - sin(2 * pi / N) * 1j) ** _)  # 提前计算W值，降低算法复杂度
 
-    def _reverse_pos(self, num) -> int:  # 得到位倒序后的索引
+    def _reverse_pos(self, num) -> int:
+        '''
+        得到位倒序后的索引
+        '''
         out = 0
         bits = 0
         _i = self.N
@@ -91,8 +101,11 @@ class SME_FFT():
         self.total_m = bits - 1
         return out
 
-    def FFT(self, _list, N, abs=True) -> list:  # 计算给定序列的傅里叶变换结果，返回一个列表，结果是没有经过归一化处理的
-        """参数abs=True表示输出结果是否取得绝对值"""
+    def FFT(self, _list, N, abs=True) -> list:
+        '''
+        计算给定序列的傅里叶变换结果，返回一个列表，结果是没有经过归一化处理的
+        abs=True 表示输出结果是否取得绝对值
+        '''
         self.__init__(_list, N)
         for m in range(self.total_m):
             _split = self.N // 2 ** (m + 1)
@@ -112,7 +125,10 @@ class SME_FFT():
                 self.output[k] = self.output[k].__abs__()
         return self.output
 
-    def FFT_normalized(self, _list, N) -> list:  # 计算给定序列的傅里叶变换结果，返回一个列表，结果经过归一化处理
+    def FFT_normalized(self, _list, N) -> list:
+        '''
+        计算给定序列的傅里叶变换结果，返回一个列表，结果经过归一化处理
+        '''
         self.FFT(_list, N)
         max = 0   # 存储元素最大值
         for k in range(len(self.output)):
@@ -122,7 +138,10 @@ class SME_FFT():
             self.output[k] /= max
         return self.output
 
-    def IFFT(self, _list, N) -> list:  # 计算给定序列的傅里叶逆变换结果，返回一个列表
+    def IFFT(self, _list, N) -> list:
+        '''
+        计算给定序列的傅里叶逆变换结果，返回一个列表
+        '''
         self.__init__(_list, N)
         for k in range(self.N):
             self._W[k] = (cos(2 * pi / N) - sin(2 * pi / N) * 1j) ** (-k)
@@ -140,7 +159,10 @@ class SME_FFT():
             self.output[k] = self.output[k].__abs__()
         return self.output
 
-    def DFT(self, _list, N) -> list:  # 计算给定序列的离散傅里叶变换结果，算法复杂度较大，返回一个列表，结果没有经过归一化处理
+    def DFT(self, _list, N) -> list:
+        '''
+        计算给定序列的离散傅里叶变换结果，算法复杂度较大，返回一个列表，结果没有经过归一化处理
+        '''
         self.__init__(_list, N)
         origin = self.list.copy()
         for i in range(self.N):
