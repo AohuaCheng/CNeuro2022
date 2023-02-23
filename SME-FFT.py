@@ -2,19 +2,39 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fft import fft
+from cmath import sin, cos, pi
 
-def outer_product_(u, v):
-    m = np.zeros((u.shap[0], v.shape[0]))
-    for i in range(u.shape[0]):
-        for j in range(v.shape[0]):
-            m[i,j] = u[i]*v[j]
-    return m
-
+'''
+SME基本运算
+1. 外积: outer_product_
+2. 累加: add_
+3. 基于这两个运算, 我们可以很容易定义出内积: dot_
+'''
 def add_(u, v):
+    '''
+    parameters:
+    u: list
+        first vector
+    v: list
+        second vector
+    returns:
+    m: list
+        the sum of u and v
+    '''
     m = [u[i] + v[i] for i in range(len(u))]
     return m
 
 def outer_(u, v):
+    '''
+    parameters:
+    u: list
+        first vector
+    v: list
+        second vector
+    returns:
+    m: 2D list
+        the outer product of u and v
+    '''
     m = []
     for i in range(len(u)):
         temp = [u[i] * v[j] for j in range(len(v))]
@@ -22,63 +42,28 @@ def outer_(u, v):
     return m
 
 def dot_(u, v):
+    '''
+    parameters:
+    u: list
+        first vector
+    v: list
+        second vector
+    returns:
+    m: list, whose length is 1
+        the cross product of u and v
+    '''
     m = [0]
     for i in range(len(u)):
         temp = outer_([u[i]], v)[i]
         m = add_(m, temp)
     return m
 
-def ft_plot(ft_x, x, t, ft_type):
-    if type(ft_x) == list:
-        ft_x = np.array(ft_x)
-    amp_x = abs(ft_x)/len(x)*2 # 纵坐标变换
-    amp = amp_x[0:int(len(x)/2)] # 选取前半段计算结果
-    label_x = np.arange(int(len(x)/2)) # 生成频率坐标
-    fs = 1/(t[2]-t[1]) # 计算采样频率
-    fre = label_x /len(x)*fs # 频率坐标变换
-    pha = np.unwrap(np.angle(ft_x)) # 计算相位角并去除2pi跃变
-    
-    if not os.path.exists('figures'):
-        os.mkdir('figures')
-    plt.figure()
-    plt.plot(t,x)
-    plt.title('Time Signal')
-    plt.xlabel('Frequence / Hz')
-    plt.ylabel('Amplitute / a.u.')
-    plt.savefig(os.path.join('figures', 'Time_Signal.png'))
-    plt.close()
 
-    plt.figure()
-    plt.plot(fre,amp)
-    plt.title('{} Frequence Signal'.format(ft_type))
-    plt.xlabel('Frequence / Hz')
-    plt.ylabel('Amplitute / a.u.')
-    plt.savefig(os.path.join('figures', '{}_Frequence_Signal.png'.format(ft_type)))
-    plt.close()
-
-def demo(x):
-    x = np.array(x)
-    N = x.shape[0]
-    t = np.arange(N)
-    # generate sine data
-    # t = np.linspace(0, 5*np.pi, N)
-    # x = np.sin(2*np.pi*t)
-    # traditional fft
-    fft_x = fft(x)
-    # SME FFT
-    sme_x = FFT_pack().FFT(x, N, False)    
-    # plot
-    ft_plot(fft_x, x, t, 'FFT')
-    ft_plot(sme_x, x, t, 'SME')
-
-"""
-@Author: Sam
-@Function: Fast Fourier Transform
-@Time: 2020.02.22 16:00
-"""
-from cmath import sin, cos, pi
-
-class FFT_pack():
+class SME_FFT():
+    """
+    SME_FFT
+    adapted from https://www.jianshu.com/p/0bd1ddae41c4
+    """
     def __init__(self, _list=[], N=0):  # _list 是传入的待计算的离散序列，N是序列采样点数，对于本方法，点数必须是2^n才可以得到正确结果
         self.list = _list  # 初始化数据
         self.N = N
@@ -165,10 +150,71 @@ class FFT_pack():
             self.output[i] = temp.__abs__()
         return self.output
 
+def ft_plot(ft_x, x, t, ft_type):
+    '''
+    plot the result of Fourier Transform X and the raw data x
+    
+    parameters:
+    ft_x: list or array
+        the Fourier transform X from x by a certain FT method
+    x: array
+        the raw data x
+    t: array
+        the indice of the raw data x
+    ft_type: str
+        the name of FT method
+    '''
+    if type(ft_x) == list:
+        ft_x = np.array(ft_x)
+    amp_x = abs(ft_x)/len(x)*2 # 纵坐标变换
+    amp = amp_x[0:int(len(x)/2)] # 选取前半段计算结果
+    label_x = np.arange(int(len(x)/2)) # 生成频率坐标
+    fs = 1/(t[2]-t[1]) # 计算采样频率
+    fre = label_x /len(x)*fs # 频率坐标变换
+    pha = np.unwrap(np.angle(ft_x)) # 计算相位角并去除2pi跃变
+    
+    if not os.path.exists('figures'):
+        os.mkdir('figures')
+    plt.figure()
+    plt.plot(t,x)
+    plt.title('Time Signal')
+    plt.xlabel('Frequence / Hz')
+    plt.ylabel('Amplitute / a.u.')
+    plt.savefig(os.path.join('figures', 'Time_Signal.png'))
+    plt.close()
+
+    plt.figure()
+    plt.plot(fre,amp)
+    plt.title('{} Frequence Signal'.format(ft_type))
+    plt.xlabel('Frequence / Hz')
+    plt.ylabel('Amplitute / a.u.')
+    plt.savefig(os.path.join('figures', '{}_Frequence_Signal.png'.format(ft_type)))
+    plt.close()
+
+def demo(x):
+    '''
+    Compute the Fast Fourier Transform by our SME method, and compare the result with standard FFT method included in scipy module
+    
+    x: list
+        the raw data used for Fourier Transform
+    '''
+    x = np.array(x)
+    N = x.shape[0]
+    t = np.arange(N)
+
+    # traditional fft
+    fft_x = fft(x)
+    # SME FFT
+    sme_x = SME_FFT().FFT(x, N, False)    
+    # plot
+    ft_plot(fft_x, x, t, 'FFT')
+    ft_plot(sme_x, x, t, 'SME')
 
 if __name__ == '__main__':
+    # generate raw data
     # x = [1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0, 0, 0, 0, 0, 0]
     N = 256
     t = np.linspace(0, 5*np.pi, N)
     x = np.sin(2*np.pi*t)
+    # compute the FFT result by SME and standard FFT
     demo(x)
